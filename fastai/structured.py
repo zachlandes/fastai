@@ -67,8 +67,8 @@ def get_sample(df,n):
 
     >>> get_sample(df, 2)
        col1 col2
-    2     3    a
     1     2    b
+    2     3    a
     """
     idxs = sorted(np.random.permutation(len(df))[:n])
     return df.iloc[idxs].copy()
@@ -324,7 +324,7 @@ def scale_vars(df, mapper):
     df[mapper.transformed_names_] = mapper.transform(df)
     return mapper
 
-def proc_df(df, y_fld, skip_flds=None, do_scale=False, na_dict=None,
+def proc_df(df, y_fld=None, skip_flds=None, do_scale=False, na_dict=None,
             preproc_fn=None, max_n_cat=None, subset=None, mapper=None):
 
     """ proc_df takes a data frame df and splits off the response variable, and
@@ -338,7 +338,7 @@ def proc_df(df, y_fld, skip_flds=None, do_scale=False, na_dict=None,
 
     skip_flds: A list of fields that dropped from df.
 
-    do_scale: Standardizes each column in df,Takes Boolean Values(True,False)
+    do_scale: Standardizes each column in df. Takes Boolean Values(True,False)
 
     na_dict: a dictionary of na columns to add. Na columns are also added if there
         are any missing values.
@@ -351,7 +351,7 @@ def proc_df(df, y_fld, skip_flds=None, do_scale=False, na_dict=None,
     subset: Takes a random subset of size subset from df.
 
     mapper: If do_scale is set as True, the mapper variable
-        calculates the values used for scaling of variables during training time(mean and standard deviation).
+        calculates the values used for scaling of variables during training time (mean and standard deviation).
 
     Returns:
     --------
@@ -364,7 +364,7 @@ def proc_df(df, y_fld, skip_flds=None, do_scale=False, na_dict=None,
 
         nas: returns a dictionary of which nas it created, and the associated median.
 
-        mapper: A DataFrameMapper which stores the mean and standard deviation of the corresponding continous
+        mapper: A DataFrameMapper which stores the mean and standard deviation of the corresponding continuous
         variables which is then used for scaling of during test-time.
 
     Examples:
@@ -419,8 +419,12 @@ def proc_df(df, y_fld, skip_flds=None, do_scale=False, na_dict=None,
     if subset: df = get_sample(df,subset)
     df = df.copy()
     if preproc_fn: preproc_fn(df)
-    y = df[y_fld].values
-    df.drop(skip_flds+[y_fld], axis=1, inplace=True)
+    if y_fld is None: y = None
+    else:
+        if not is_numeric_dtype(df[y_fld]): df[y_fld] = df[y_fld].cat.codes
+        y = df[y_fld].values
+        skip_flds += [y_fld]
+    df.drop(skip_flds, axis=1, inplace=True)
 
     if na_dict is None: na_dict = {}
     for n,c in df.items(): na_dict = fix_missing(df, c, n, na_dict)
