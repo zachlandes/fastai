@@ -121,3 +121,7 @@ Thumbs.db
 
 # credentials
 CRED.txt
+
+# pytest
+.pytest_cache
+
