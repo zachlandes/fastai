@@ -7,6 +7,12 @@ def is_listy(x): return isinstance(x, (list,tuple))
 def is_iter(x): return isinstance(x, collections.Iterable)
 def map_over(x, f): return [f(o) for o in x] if is_listy(x) else f(x)
 def map_none(x, f): return None if x is None else f(x)
+def delistify(x): return x[0] if is_listy(x) else x
+def listify(x, y):
+    if not is_iter(x): x=[x]
+    n = y if type(y)==int else len(y)
+    if len(x)==1: x = x * n
+    return x
 
 conv_dict = {np.dtype('int8'): torch.LongTensor, np.dtype('int16'): torch.LongTensor,
     np.dtype('int32'): torch.LongTensor, np.dtype('int64'): torch.LongTensor,
@@ -72,6 +78,8 @@ def split_by_idxs(seq, idxs):
     '''A generator that returns sequence pieces, seperated by indexes specified in idxs. '''
     last = 0
     for idx in idxs:
+        if not (-len(seq) <= idx < len(seq)):
+          raise KeyError(f'Idx {idx} is out-of-bounds')
         yield seq[last:idx]
         last = idx
     yield seq[last:]
@@ -167,27 +175,6 @@ def chunk_iter(iterable, chunk_size):
             if chunk: yield chunk
             break
 
-class set_grad_enabled(object):
-    """Context-manager that sets gradient calculation to on or off.
+def set_grad_enabled(mode): return torch.set_grad_enabled(mode) if IS_TORCH_04 else contextlib.suppress()
 
-    ``set_grad_enabled`` will enable or disable grads based on its argument :attr:`mode`.
-    It can be used as a context-manager or as a function.
-
-    Arguments:
-        mode (bool): Flag whether to enable grad (``True``), or disable
-                     (``False``). This can be used to conditionally enable
-                     gradients.
-
-    """
-
-    def __init__(self, mode):
-        if IS_TORCH_04:
-            self.prev = torch.is_grad_enabled()
-            torch._C.set_grad_enabled(mode)
-
-    def __enter__(self):
-        pass
-
-    def __exit__(self, *args):
-        if IS_TORCH_04: torch.set_grad_enabled(self.prev)
-        return False
+def no_grad_context(): return torch.no_grad() if IS_TORCH_04 else contextlib.suppress()
